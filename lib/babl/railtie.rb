@@ -3,14 +3,14 @@ module Babl
     module ActionView
         class TemplateHandler
             class_attribute :default_format
-            self.default_format = Mime[:json]
+            self.default_format = :json
 
             class << self
                 def cached_templates
                     @cached_templates ||= {}
                 end
 
-                def call(template)
+                def call(template, _source = nil)
                     Babl.config.cache_templates ? cached_call(template) : uncached_call(template)
                 end
 
