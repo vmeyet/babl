@@ -9,16 +9,14 @@ module Babl
             module DSL
                 # Create a JSON object node with static structure
                 def object(*args)
-                    kwargs = ::Hash === args.last ? args.pop : Utils::Hash::EMPTY
-
-                    (args.map(&:to_sym) + kwargs.keys.map(&:to_sym)).group_by(&:itself).each_value do |keys|
+                    kwargs, args = args.partition { |el| el.is_a?(Hash) }
+                    (args.map(&:to_sym) + kwargs.flat_map(&:keys).map(&:to_sym)).group_by(&:itself).each_value do |keys|
                         raise Errors::InvalidTemplate, "Duplicate key in object(): #{keys.first}" if keys.size > 1
                     end
 
-                    templates = args
-                        .map { |name| [name.to_sym, unscoped.nav(name)] }.to_h
-                        .merge(kwargs)
-                        .map { |k, v| [k, unscoped.reset_continue.call(v)] }
+                    kwargs << args.map { |name| [name.to_sym, unscoped.nav(name)] }.to_h
+
+                    templates = kwargs.reduce(&:merge).map { |k, v| [k, unscoped.reset_continue.call(v)] }
 
                     construct_terminal { |ctx|
                         Nodes::Object.new(templates.map { |key, template|
